@@ -54,6 +54,10 @@
 #   MKOCTFILE [not defined] - Path to Octave MKOCTFILE compiler. If undefined,
 #       Octave support is disabled.
 #
+#   INTEL [not defined] - if set and ARCH is maci64, will compile for x86_64.
+#
+#   ARM64 [not defined] - if set and ARCH is maci64, will compile for a64.
+#
 # If defined to anything other than "no", the following falgs disable
 # specific features in the library. By defaults, all the features are
 # enabled.  If the makefile finds that the environment is unable to
@@ -96,8 +100,8 @@ SHELL = /bin/bash
 all:
 
 # Select which features to disable
-# DISABLE_SSE2=yes
-# DISABLE_AVX=yes
+DISABLE_SSE2=yes
+DISABLE_AVX=yes
 # DISABLE_THREADS=yes
 # DISABLE_OPENMP=yes
 
@@ -126,6 +130,7 @@ Darwin_PPC_ARCH := mac
 Darwin_Power_Macintosh_ARCH := mac
 Darwin_i386_ARCH := maci64
 Darwin_x86_64_ARCH := maci64
+Darwin_arm64_ARCH := maci64
 Linux_i386_ARCH := glnx86
 Linux_i686_ARCH := glnx86
 Linux_unknown_ARCH := glnx86
@@ -156,8 +161,13 @@ STD_CFLAGS += -Wall -Wextra
 STD_CFLAGS += -Wno-unused-function -Wno-long-long -Wno-variadic-macros
 STD_CFLAGS += $(if $(DEBUG), -DDEBUG -O0 -g, -DNDEBUG -O3)
 STD_CFLAGS += $(if $(PROFILE), -g)
+STD_CFLAGS += $(if $(INTEL), -arch x86_64)
+STD_CFLAGS += $(if $(ARM64), -arch arm64)
+
 
 STD_LDFLAGS = $(LDFLAGS)
+STD_LDFLAGS += $(if $(INTEL), -arch x86_64)
+STD_LDFLAGS += $(if $(ARM64), -arch arm64)
 
 # Architecture specific ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -207,14 +217,14 @@ endif
 endif
 
 # Mac OS X Intel
-ifeq "$(ARCH)" "$(filter $(ARCH),maci maci64)"
+ifeq "$(ARCH)" "$(filter $(ARCH),maci maci64 macarm)"
 ifeq "$(ARCH)" "maci"
 march=32
 else
 march=64
 endif
 SDKROOT ?= $(shell xcrun -sdk macosx --show-sdk-path)
-MACOSX_DEPLOYMENT_TARGET ?= 10.4
+MACOSX_DEPLOYMENT_TARGET ?= 10.14
 STD_CFLAGS += -m$(march) -isysroot $(SDKROOT) -mmacosx-version-min=$(MACOSX_DEPLOYMENT_TARGET)
 STD_LDFLAGS += -Wl,-syslibroot,$(SDKROOT) -mmacosx-version-min=$(MACOSX_DEPLOYMENT_TARGET)
 endif
